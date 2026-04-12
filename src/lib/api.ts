@@ -4,7 +4,7 @@
 //  This is the single place all backend calls come from.
 // ============================================================
 
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = 'https://uni-meal-finder.onrender.com/api';
 
 // Saves the token after login so every request can use it
 export function getToken(): string | null {
