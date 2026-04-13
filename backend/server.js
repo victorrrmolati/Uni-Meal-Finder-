@@ -14,13 +14,7 @@ const cors    = require('cors');
 const app  = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://uni-meal-finder.vercel.app'
-  ],
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json());
 
 // ── DATABASE ─────────────────────────────────────────────────
@@ -30,6 +24,9 @@ const db = mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port:     process.env.DB_PORT || 3306,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 (async () => {
