@@ -5,6 +5,7 @@
 // ============================================================
 
 const BASE_URL = 'https://uni-meal-finder-production.up.railway.app/api';
+
 // Saves the token after login so every request can use it
 export function getToken(): string | null {
   return localStorage.getItem('token');
