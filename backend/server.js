@@ -379,7 +379,7 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
     const vendor_id = cartItems[0].vendor_id;
 
     const [orderResult] = await db.query(
-      `INSERT INTO \`order\` (user_id, vendor_id, delivery_type, delivery_address, payment_method, total_price)
+      `INSERT INTO orders (user_id, vendor_id, delivery_type, delivery_address, payment_method, total_price)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [req.user.id, vendor_id, delivery_type, delivery_address, payment_method, total_price]
     );
@@ -417,7 +417,7 @@ app.get('/api/orders', authMiddleware, async (req, res) => {
     const [orders] = await db.query(
       `SELECT o.order_id AS id, o.status, o.delivery_type, o.payment_method,
               o.total_price, o.created_at, v.vendor_name AS vendor_name
-       FROM \`order\` o
+       orders o
        JOIN vendor v ON o.vendor_id = v.vendor_id
        WHERE o.user_id = ?
        ORDER BY o.created_at DESC`,
@@ -434,7 +434,7 @@ app.get('/api/orders/:id', authMiddleware, async (req, res) => {
   try {
     const [orders] = await db.query(
       `SELECT o.*, v.vendor_name AS vendor_name
-       FROM \`order\` o JOIN vendor v ON o.vendor_id = v.vendor_id
+       orders o JOIN vendor v ON o.vendor_id = v.vendor_id
        WHERE o.order_id = ? AND o.user_id = ?`,
       [req.params.id, req.user.id]
     );
@@ -452,6 +452,55 @@ app.get('/api/orders/:id', authMiddleware, async (req, res) => {
   }
 });
 
+app.put('/api/orders/:id/edit', authMiddleware, async (req, res) => {
+  const { delivery_type, delivery_address, payment_method } = req.body;
+
+  try {
+    // Only allow editing if order is still pending
+    const [rows] = await db.query(
+      'SELECT status, user_id FROM orders WHERE order_id = ?',
+      [req.params.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    if (rows[0].user_id !== req.user.id) {
+      return res.status(403).json({ error: 'You can only edit your own orders' });
+    }
+
+    if (rows[0].status !== 'pending') {
+      return res.status(400).json({
+        error: `Cannot edit order — it is already ${rows[0].status}. Only pending orders can be edited.`
+      });
+    }
+
+    await db.query(
+      `UPDATE orders SET
+        delivery_type    = COALESCE(?, delivery_type),
+        delivery_address = ?,
+        payment_method   = COALESCE(?, payment_method)
+       WHERE order_id = ?`,
+      [delivery_type, delivery_address, payment_method, req.params.id]
+    );
+
+    // Notify the user
+    await db.query(
+      'INSERT INTO notification (user_id, message) VALUES (?, ?)',
+      [req.user.id, `Your order #${req.params.id} has been updated successfully.`]
+    );
+
+    res.json({ message: 'Order updated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update order', details: err.message });
+  }
+});
+
+
+
+
+
 app.get('/api/vendors/:vendorId/orders', authMiddleware, requireRole('vendor'), async (req, res) => {
   try {
     const [orders] = await db.query(
@@ -464,7 +513,7 @@ app.get('/api/vendors/:vendorId/orders', authMiddleware, requireRole('vendor'), 
         o.total_price,
         o.created_at,
         u.user_name   AS customer_name
-       FROM \`order\` o
+       orders o
        JOIN \`user\` u ON o.user_id = u.user_id
        WHERE o.vendor_id = ?
        ORDER BY o.created_at DESC`,
@@ -499,10 +548,10 @@ app.put('/api/orders/:id/status', authMiddleware, requireRole('vendor'), async (
   }
   try {
     await db.query(
-      'UPDATE `order` SET status = ? WHERE order_id = ?', [status, req.params.id]
+      'UPDATE orders SET status = ? WHERE order_id = ?', [status, req.params.id]
     );
     const [orderRows] = await db.query(
-      'SELECT user_id FROM `order` WHERE order_id = ?', [req.params.id]
+      'SELECT user_id FROM orders WHERE order_id = ?', [req.params.id]
     );
     if (orderRows.length > 0) {
       await db.query(

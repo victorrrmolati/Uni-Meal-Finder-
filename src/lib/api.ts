@@ -1,10 +1,11 @@
 // ============================================================
 //  src/lib/api.ts
-//  Replace your existing src/lib/supabase.ts with this file.
+//
 //  This is the single place all backend calls come from.
 // ============================================================
 
-const BASE_URL = 'https://uni-meal-finder-production.up.railway.app/api';
+//const BASE_URL = 'https://uni-meal-finder-production.up.railway.app/api';
+const BASE_URL = 'http://localhost:5000/api';
 
 // Saves the token after login so every request can use it
 export function getToken(): string | null {

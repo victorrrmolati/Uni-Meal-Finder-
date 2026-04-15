@@ -1,4 +1,7 @@
-
+// ============================================================
+//  src/App.tsx — Replace your existing App.tsx with this.
+//  Adds Orders tab in navigation and OrderHistory page.
+// ============================================================
 
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -11,10 +14,11 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import MealPlans from './pages/MealPlans';
 import VendorPortal from './pages/VendorPortal';
+import OrderHistory from './pages/OrderHistory';
 import Header from './components/Header';
 import { Vendor } from './types';
 
-type Page = 'vendors' | 'vendor-detail' | 'meal-plans' | 'cart' | 'checkout';
+type Page = 'vendors' | 'vendor-detail' | 'meal-plans' | 'cart' | 'checkout' | 'orders';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -31,7 +35,7 @@ function AppContent() {
     setSelectedVendor(null);
   };
 
-  const handleNavigate = (page: 'vendors' | 'meal-plans' | 'cart' | 'checkout') => {
+  const handleNavigate = (page: 'vendors' | 'meal-plans' | 'cart' | 'checkout' | 'orders') => {
     setCurrentPage(page);
   };
 
@@ -43,17 +47,12 @@ function AppContent() {
     );
   }
 
-  // Not logged in — show login page
-  if (!user) {
-    return <Login />;
-  }
+  if (!user) return <Login />;
 
-  // ── VENDOR: show their management portal ──────────────────
-  if (user.role === 'vendor') {
-    return <VendorPortal />;
-  }
+  // Vendor sees their portal
+  if (user.role === 'vendor') return <VendorPortal />;
 
-  // ── STUDENT / STAFF: show the ordering app ────────────────
+  // Students and staff see the ordering app
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
@@ -71,6 +70,8 @@ function AppContent() {
 
       {currentPage === 'meal-plans' && <MealPlans />}
 
+      {currentPage === 'orders' && <OrderHistory />}
+
       {currentPage === 'cart' && (
         <Cart
           onCheckout={() => setCurrentPage('checkout')}
@@ -78,7 +79,9 @@ function AppContent() {
         />
       )}
 
-      {currentPage === 'checkout' && <Checkout />}
+      {currentPage === 'checkout' && (
+        <Checkout onOrderPlaced={() => setCurrentPage('orders')} />
+      )}
 
       <footer className="bg-slate-900 text-gray-400 py-6 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
